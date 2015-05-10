@@ -1,24 +1,17 @@
-#ifndef HOOK_H
-#define HOOK_H
+#ifndef _IA32HOOK_HOOK_H_
+#define _IA32HOOK_HOOK_H_
 #include <stdint.h>
+#include <stddef.h>
+#if UINTPTR_MAX != 0xffffffff || (defined(_WIN32) && !defined(_M_IX86))
+#error Only IA32 (x86 - 32 bits) is supported
+#endif
 
 typedef int (*hook_t)();
 hook_t hook_attach(uintptr_t fish, hook_t hook);
 int hook_detach(uintptr_t fish, hook_t);
-const char* hook_error(void*);
-enum HookFailedOn {HOOK_ALL_OK = 0
-		  , HOOK_VIRTUALALLOC_COOLBOX
-		  ,HOOK_PROTECTION_DISABLE
-		  ,HOOK_PROTECTION_ENABLE
-		  ,HOOK_COOLBOX_EXECUTABLE
-		  };
-static union {
-	uintptr_t addr;
-	char *byte;
-	void *ptr;
-	void** ptr2ptr;
-	hook_t fun;
-}conv;
+int hook_error(char *buf, size_t buflen);
+
+enum {HOOK_EUNKNOWN, HOOK_ECOOLBOX_ALLOC, HOOK_ECOOLBOX_PROTON, HOOK_ECOOLBOX_PROTOFF, HOOK_EFISH_PROTON, HOOK_EFISH_PROTOFF, HOOK_ECOOLBOX_DEALLOC};
 
 #endif
 
