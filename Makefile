@@ -2,9 +2,10 @@
 BIN_NAME = sqrt
 # ^ exe should be removed
 
+#CC = gcc
 CC = /usr/local/mingw/bin/i686-w64-mingw32-gcc
 
-override FLAGS += -m32 -std=c11 -Wall -Wextra
+override FLAGS += -g -m32 -std=c11 -Wall -Wextra 
 
 SRCDIR = .
 OBJDIR = build
@@ -12,7 +13,7 @@ OBJDIR = build
 #LIBS = -lpsapi
 
 SRCS = hook.c ollydisasm/disasm.c ollydisasm/assembl.c ollydisasm/asmserv.c 
-SRCS += test/isOdd.c 
+SRCS += test/printf.c 
 INC += -Iinclude/ -Ilib/
  
 OBJS = $(SRCS:%.c=$(OBJDIR)/%.o) 
@@ -35,5 +36,5 @@ endif
 
 .PHONY: clean
 clean:
-	$(RM) $(BIN_NAME) && cd $(OBJDIR) && $(RM) *.o *.d 
+	$(RM) $(BIN_NAME) && cd $(OBJDIR) && $(RM) *.o *.d && cd ollydisasm && $(RM) *.o *.d && cd ../test && $(RM) *.o *.d 
 

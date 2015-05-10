@@ -3,10 +3,11 @@
 #include <stdlib.h>
 #include "../hook.h"
 int isOdd(int x) { return x & 1; }
-int __stdcall isEven(int x) { return !(x & 1); }
-
-int __stdcall _isOdd(int orig(int), int x) { return x < 10 ? orig(x) : isEven(x); }
-
+int isEven(int x) { return !(x & 1); }
+static hook_t orig_isOdd = isOdd;
+int _isOdd(int x) { 
+return x < 10 ? orig_isOdd(x) : isEven(x); }
+int _isOdd2(int x) { return isEven(x); }
 int main(int argc, char *argv[])
 {
 	int num;
@@ -17,12 +18,18 @@ int main(int argc, char *argv[])
 			num, isEven(num) ? "TRUE" : "FALSE",
 			num, isOdd(num)  ? "TRUE" : "FALSE");
 	
-	attachHook((uintptr_t)isOdd, _isOdd);
+	orig_isOdd = attachHook((uintptr_t)isOdd, _isOdd);
+	fputs("good so far\n", stderr);
+	//__asm__("int $3;");
+	int oddity = isOdd(num);
+	assert(orig_isOdd != NULL);
 	printf("  Hooked:\n\tisEven(%d)=%s, isOdd(%d)=%s\n", 
 			num, isEven(num) ? "TRUE" : "FALSE",
-			num, isOdd(num)  ? "TRUE" : "FALSE");
+			num, oddity  ? "TRUE" : "FALSE");
 
-	detachRawHook((uintptr_t)isOdd);
+	fputs("good so far\n", stderr);
+	detachRawHook((uintptr_t)isOdd, orig_isOdd);
+	fputs("good so far\n", stderr);
 	printf("DeHooked:\n\tisEven(%d)=%s, isOdd(%d)=%s\n", 
 			num, isEven(num) ? "TRUE" : "FALSE",
 			num, isOdd(num)  ? "TRUE" : "FALSE");

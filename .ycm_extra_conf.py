@@ -60,6 +60,7 @@ def FlagsForFile( filename , **kwargs ):
             '-isystem', '/usr/local/mingw/i686-w64-mingw32/include',
             '-isystem', '/System/Library/Frameworks/Python.framework/Headers',
             '-isystem', '/usr/local/include',
+            '-isystem', '/usr/include',
             '-isystem', '/usr/local/include/eigen3',
             '-I', 'include',
             '-I.',
@@ -67,7 +68,7 @@ def FlagsForFile( filename , **kwargs ):
             '-DWINAPI=/*__stdcall*/'
             ]
   flags += ['-xc']
-  flags += ['-std=gnu11']
+  flags += ['-std=c99']
   if database:
     # Bear in mind that compilation_info.compiler_flags_ does NOT return a
     # python list, but a "list-like" StringVec object
