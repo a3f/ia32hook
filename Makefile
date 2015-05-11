@@ -9,7 +9,6 @@ SRCDIR = .
 OBJDIR = build
 
 SRCS = hook.c win32.c
-SRCS = hook.c ollydisasm/disasm.c ollydisasm/assembl.c ollydisasm/asmserv.c 
 # SRCS += test/printf.c
 
 INC += -Iinclude/ -Ilib/
@@ -21,8 +20,8 @@ DISASM_SRCDIR = ollydisasm
 DISASM_OBJS = $(DISASM_SRCS:%.c=$(OBJDIR)/%.o) 
 ####################
 .DEFAULT: (BIN_NAME)
-$(BIN_NAME): $(OBJS) 
-	$(CC) -shared $(FLAGS) $(OBJS) -o $@ $(LIBS)
+$(BIN_NAME): $(OBJS) $(DISASM_OBJS)
+	$(CC) -shared $(FLAGS) $(OBJS) $(DISASM_OBJS) -o $@ $(LIBS)
 
 $(OBJS): $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) -MMD $(FLAGS) -c $< -o $@ $(INC) 
