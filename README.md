@@ -1,4 +1,4 @@
-## ia32hook - A simple function hooking mechanism for Intel 32-Bit
+## ia32hook
 ia32hook is a tiny library for [hooking][] procedures in the same address space. The hooked function's calling convention needs to be the same as the hook. So for hooking `WINAPI` functions one would need to specify `__stdcall`.
 
 ia32hook is written in the C99 subset of C++11 and is compilable as either. It supports hooking of IA32 (x86 32 bit, i386) code only. It has been tested on Windows 8, OS X Yosemite and Debian 7 but should work on any other Windows/UNIX system too. If your hook isn't within the address space of the function you want to hook, <s>[lade][]</s> A [DLL injector][] can inject your code into the foreign process.<!--note to self: lade's link here when uploaded--> 
@@ -81,5 +81,5 @@ The disassembler is	written by [Oleh Yuschuk][] and distributed under the terms 
 [DLL injector]: https://en.wikipedia.org/wiki/DLL_injection
 [Oleh Yuschuk]: http://www.ollydbg.de/
 [GNU GPL 2.0]: https://www.gnu.org/licenses/gpl-2.0.html
-[MIT/X11 license]: http://github.com/a3f/ia32hook/LICENSE
+[MIT/X11 license]: https://github.com/a3f/ia32hook/blob/master/LICENSE
 
