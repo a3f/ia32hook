@@ -17,7 +17,7 @@ extern "C" {
 #endif
 enum {	MAP_ANON = 1, 	MAP_PRIVATE = 2};
 enum {  PROT_NONE = 0x01,  PROT_READ = 0x02,
-    	PROT_WRITE = 0x1000, PROT_EXEC = 0x10, _PROT_AS_IS = 0xA3F};
+    	PROT_WRITE = 0x1000, PROT_EXEC = 0x10, _PROT_AS_IS = 0x4000};
 #define MAP_FAILED ((void*)-1)
 #ifndef _OFF_T_
 #define _OFF_T_
