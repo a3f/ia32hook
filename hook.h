@@ -1,8 +1,25 @@
+/*! 
+ *  \brief     Header file for ia32hook. You are supposed to include this
+ *  \author    Ahmad Fatoum
+ *  \version   1.0
+ *  \date      2014
+ *  \copyright MIT License (See LICENSE)
+ */
+
+/* Terminology:
+ * fish = function to patch
+ * hook = patch to apply
+ */
+
 #ifndef _IA32HOOK_HOOK_H_
 #define _IA32HOOK_HOOK_H_
-#include <stdint.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stddef.h>
-#if UINTPTR_MAX != 0xffffffff || (defined(_WIN32) && !defined(_M_IX86))
+
+#if !defined(__i386__) || ((defined(_WIN32) && !defined(_M_IX86)))
 #error Only IA32 (x86 - 32 bits) is supported
 #endif
 
@@ -13,5 +30,8 @@ int hook_error(char *buf, size_t buflen);
 
 enum {HOOK_EUNKNOWN, HOOK_ECOOLBOX_ALLOC, HOOK_ECOOLBOX_PROTON, HOOK_ECOOLBOX_PROTOFF, HOOK_EFISH_PROTON, HOOK_EFISH_PROTOFF, HOOK_ECOOLBOX_DEALLOC};
 
+#ifdef __cplusplus
+}
+#endif
 #endif
 

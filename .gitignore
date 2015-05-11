@@ -3,4 +3,11 @@
 *.swp
 build/
 *.pyc
+*.swo
+*.DS_Store
+
+*.a
+*.dll
+*.lib
+*.out
 

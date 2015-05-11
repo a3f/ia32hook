@@ -1,3 +1,11 @@
+/*! 
+ *  \brief     Source file for ia32hook. You are supposed to link with this.
+ *  \author    Ahmad Fatoum
+ *  \version   1.0
+ *  \date      2014
+ *  \copyright MIT License (See LICENSE)
+ */
+
 /* Terminology:
  *
  * fish = function to patch
@@ -9,25 +17,36 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <string.h>
 #include <stddef.h>
 #include "hook.h"
 #include "ollydisasm/disasm.h"
+
+#undef GET_PAGE
 #ifdef _WIN32
 #include "win32.h"
 #define GET_PAGE PTR //VirtualAlloc seems to do this internally
 #else
+#ifndef MAP_ANON
+#define MAP_ANON MAP_ANONYMOUS
+#endif
 #include <sys/mman.h>
 #include <unistd.h>
 #define GET_PAGE(addr) ((void*)((uintptr_t)(addr) & ~(getpagesize() - 1)))
 #endif
 
+#undef mempcpy
 #define mempcpy(dst, src, len) ((char*)memcpy((dst), (src), (len)) + (len))
 
+#undef PTR
+#undef ADDR
+#undef DATA
 #define PTR(addr_) (conv.addr=addr_, conv.ptr)
 #define ADDR(ptr_) (conv.ptr=ptr_, conv.addr)
 #define DATA(fun_) (conv.fun=fun_, conv.ptr)
 
+#undef JMP_SIZE
 #define JMP_SIZE 5
 static unsigned long CleanBiteOff(const unsigned char *ptr, size_t amount); // how many bytes should I overwrite to fit a jump and not leave garbage behind 
 
@@ -56,6 +75,7 @@ hook_t hook_attach(uintptr_t fish_, hook_t hook)
 		hook_errno = HOOK_ECOOLBOX_ALLOC;
 		return NULL; 
 	}
+
 	ptrdiff_t hook_rel = ADDR(DATA(hook)) - fish_ - JMP_SIZE;
 	ptrdiff_t orig_rel = fish_ - ADDR(coolbox) - JMP_SIZE;	
 	(void)memcpy(&overwrite[1], &hook_rel, JMP_SIZE-1);

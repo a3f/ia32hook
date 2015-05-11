@@ -1,3 +1,11 @@
+/*! 
+ *  \brief     Provides limited mmap, mprotect, munmap for Win32
+ *  \author    Ahmad Fatoum
+ *  \version   1.0
+ *  \date      2015
+ *  \copyright MIT License (See LICENSE)
+ */
+
 #include <stdlib.h>
 #include <errno.h>
 #include <stddef.h>
@@ -9,6 +17,9 @@
 
 static inline DWORD translate_perms(int prot)
 {
+	if (prot & _PROT_AS_IS)
+		return prot;
+
 	switch (prot)
 	{
 		case PROT_EXEC|PROT_READ|PROT_WRITE:
