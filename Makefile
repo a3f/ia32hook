@@ -1,7 +1,7 @@
 BIN_NAME = ia32hook.dll
 
-CC = gcc
-#CC = /usr/local/mingw/bin/i686-w64-mingw32-gcc
+#CC = gcc
+CC = /usr/local/mingw/bin/i686-w64-mingw32-gcc
 
 override FLAGS += -g -m32 -std=c99 -Wall -Wextra 
 
@@ -9,7 +9,7 @@ SRCDIR = .
 OBJDIR = build
 
 SRCS = hook.c win32.c
-# SRCS += test/printf.c
+SRCS += test/isOdd.c
 
 INC += -Iinclude/ -Ilib/
  
@@ -21,7 +21,7 @@ DISASM_OBJS = $(DISASM_SRCS:%.c=$(OBJDIR)/%.o)
 ####################
 .DEFAULT: (BIN_NAME)
 $(BIN_NAME): $(OBJS) $(DISASM_OBJS)
-	$(CC) -shared $(FLAGS) $(OBJS) $(DISASM_OBJS) -o $@ $(LIBS)
+	$(CC) $(FLAGS) $(OBJS) $(DISASM_OBJS) -o $@ $(LIBS)
 
 $(OBJS): $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) -MMD $(FLAGS) -c $< -o $@ $(INC) 

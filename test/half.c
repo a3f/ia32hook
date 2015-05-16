@@ -20,17 +20,18 @@ int _half(int x) {
 int main(int argc, char *argv[])
 {
 	int num;
-   num	= atoi(argv[1]);
+	num	= atoi(argv[1]);
 	assert(argc == 2);
+	hook_init();
 
 	printf("UnHooked:\n\thalf(%i)=%i\n", 
 			num, half(num));
-	
-	orig_half = attachHook((uintptr_t)half, _half);
+
+	orig_half = hook_attach((uintptr_t)half, _half, 0);
 	printf("  Hooked:\n\thalf(%i)=%i\n", 
 			num, half(num));
 
-	detachRawHook((uintptr_t)half, orig_half);
+	hook_detach((uintptr_t)half, orig_half);
 	printf("DeHooked:\n\thalf(%i)=%i\n", 
 			num, half(num));
 }

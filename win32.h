@@ -23,10 +23,17 @@ enum {  PROT_NONE = 0x01,  PROT_READ = 0x02,
 #define _OFF_T_
 typedef long off_t; //unused
 #endif
+/* memory mapping */
 void *mmap(void *, size_t, int, int, int, off_t);
 int munmap(void *, size_t);
 int mprotect(void *, size_t, int);
 
+/* critical sections */
+typedef struct lock_t lock_t;
+lock_t* mlock_init(void);
+int mlock(lock_t*, void*, size_t);
+int munlock(lock_t*);
+void mlock_remove(lock_t*);
 #ifdef __cplusplus
 }
 #endif

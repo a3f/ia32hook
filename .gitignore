@@ -2,6 +2,7 @@
 *.d
 *.swp
 build/
+!build/ollydisasm/.dummy
 *.pyc
 *.swo
 *.DS_Store

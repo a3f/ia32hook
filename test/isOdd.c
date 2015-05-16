@@ -13,18 +13,18 @@ int main(int argc, char *argv[])
 	int num;
    	num	= atoi(argv[1]);
 	assert(argc == 2);
-
+	hook_init();
 	printf("UnHooked:\n\tisEven(%d)=%s, isOdd(%d)=%s\n", 
 			num, isEven(num) ? "TRUE" : "FALSE",
 			num, isOdd(num)  ? "TRUE" : "FALSE");
 	
-	orig_isOdd = attachHook((uintptr_t)isOdd, _isOdd);
+	orig_isOdd = hook_attach((uintptr_t)isOdd, _isOdd, 0);
 	assert(orig_isOdd != NULL);
 	printf("  Hooked:\n\tisEven(%d)=%s, isOdd(%d)=%s\n", 
 			num, isEven(num) ? "TRUE" : "FALSE",
 			num, isOdd(num)  ? "TRUE" : "FALSE");
 
-	detachRawHook((uintptr_t)isOdd, orig_isOdd);
+	hook_detach((uintptr_t)isOdd, orig_isOdd);
 	printf("DeHooked:\n\tisEven(%d)=%s, isOdd(%d)=%s\n", 
 			num, isEven(num) ? "TRUE" : "FALSE",
 			num, isOdd(num)  ? "TRUE" : "FALSE");

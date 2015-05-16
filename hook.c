@@ -20,12 +20,14 @@
 #include <stdint.h>
 #include <string.h>
 #include <stddef.h>
+#include <errno.h>
 #include "hook.h"
 #include "ollydisasm/disasm.h"
 
 #undef GET_PAGE
 #ifdef _WIN32
 #include "win32.h"
+#include <windows.h>
 #define GET_PAGE PTR //VirtualAlloc seems to do this internally
 #else
 #ifndef MAP_ANON
@@ -58,14 +60,32 @@ static union {
 	hook_t fun;
 }conv;
 
+
 static int hook_errno = HOOK_EUNKNOWN;
-hook_t hook_attach(uintptr_t fish_, hook_t hook)
+static lock_t *lock;
+void hook_init(void)
 {
+	lock = mlock_init();
+}
+#define JMP 0xe9
+#define CALL 0xe8
+hook_t hook_attach(uintptr_t fish_, hook_t hook, int flags)
+{
+	unsigned char op = JMP;
+	if (flags & HOOK_CALL && HOOK_FUNC & flags) 
+	{
+		hook_errno = EINVAL;
+		return NULL;
+	}
+	//if (flags & HOOK_CALL) op = CALL;
+	if (flags & HOOK_FUNC) op = JMP;
+
+
 	void *fish = PTR(fish_);
 	unsigned long safeSize = CleanBiteOff(fish, JMP_SIZE);
 	uint8_t *overwrite = malloc(safeSize);
 
-	overwrite[0] = 0xE9;//call e8 -- jmp e9
+	overwrite[0] = op;
 	for (size_t i = JMP_SIZE; i < safeSize; i++)
 		overwrite[i] = 0x90;
 
@@ -85,13 +105,13 @@ hook_t hook_attach(uintptr_t fish_, hook_t hook)
 			"\xE9",	   1),
 			&orig_rel, JMP_SIZE-1);
 
+	mlock(lock, fish, safeSize);
 	if (mprotect(GET_PAGE(fish_), safeSize, PROT_READ | PROT_EXEC | PROT_WRITE) == -1) 
 	{
 		hook_errno = HOOK_EFISH_PROTOFF;
 		return NULL;
 	}
 	
-//README: atomic memcpy? process should be suspended while patching imo
 	(void)memcpy(fish, overwrite, safeSize);
 	
 	if (mprotect(GET_PAGE(fish_), safeSize, PROT_READ | PROT_EXEC) == -1) 
@@ -99,14 +119,14 @@ hook_t hook_attach(uintptr_t fish_, hook_t hook)
 		hook_errno = HOOK_EFISH_PROTON;
 		return NULL;
 	}
-
+	munlock(lock);
 	return (conv.ptr=coolbox, conv.fun);
 }
 int hook_detach(uintptr_t fish_, hook_t coolbox)
 {
 	void *fish = PTR(fish_);
 	uint8_t *instruction = fish;
-	if (*instruction != 0xE9)
+	if (*instruction != JMP && *instruction != CALL)
 		return -1;
 	instruction+= JMP_SIZE;
 
@@ -118,7 +138,7 @@ int hook_detach(uintptr_t fish_, hook_t coolbox)
 		hook_errno = HOOK_EFISH_PROTOFF;
 		return -1;
 	}
-
+	mlock(lock, fish, safeSize);
 	(void)memcpy(fish, DATA(coolbox), safeSize);
 
 	if (mprotect(GET_PAGE(fish_), safeSize, PROT_READ | PROT_EXEC) == -1) 
@@ -126,7 +146,7 @@ int hook_detach(uintptr_t fish_, hook_t coolbox)
 		hook_errno = HOOK_EFISH_PROTOFF;
 		return -1;
 	}
-
+	munlock(lock);
 	if (munmap(DATA(coolbox), safeSize + JMP_SIZE) != 0)
 	{
 		hook_errno = HOOK_ECOOLBOX_DEALLOC;
