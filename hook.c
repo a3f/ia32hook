@@ -77,36 +77,41 @@ hook_t hook_attach(uintptr_t fish_, hook_t hook, int flags)
 		hook_errno = EINVAL;
 		return NULL;
 	}
-	//if (flags & HOOK_CALL) op = CALL;
+	if (flags & HOOK_CALL) op = CALL;
 	if (flags & HOOK_FUNC) op = JMP;
 
 
 	void *fish = PTR(fish_);
+	uint8_t* coolbox;
 	unsigned long safeSize = CleanBiteOff(fish, JMP_SIZE);
 	uint8_t *overwrite = malloc(safeSize);
 
 	overwrite[0] = op;
 	for (size_t i = JMP_SIZE; i < safeSize; i++)
 		overwrite[i] = 0x90;
-
-	uint8_t* coolbox = mmap(NULL, safeSize + JMP_SIZE, PROT_EXEC | PROT_WRITE | PROT_READ, MAP_ANON | MAP_PRIVATE, -1, 0); 
-	if (coolbox  == MAP_FAILED)
-	{
-		hook_errno = HOOK_ECOOLBOX_ALLOC;
-		return NULL; 
-	}
-
+	
 	ptrdiff_t hook_rel = ADDR(DATA(hook)) - fish_ - JMP_SIZE;
-	ptrdiff_t orig_rel = fish_ - ADDR(coolbox) - JMP_SIZE;	
 	(void)memcpy(&overwrite[1], &hook_rel, JMP_SIZE-1);
 
-	(void)mempcpy(mempcpy(mempcpy(coolbox, 
-			fish, safeSize),
-			"\xE9",	   1),
-			&orig_rel, JMP_SIZE-1);
+    if (op == JMP)
+	{
+		coolbox = mmap(NULL, safeSize + JMP_SIZE, PROT_EXEC | PROT_WRITE | PROT_READ, MAP_ANON | MAP_PRIVATE, -1, 0); 
+		if (coolbox  == MAP_FAILED)
+		{
+			hook_errno = HOOK_ECOOLBOX_ALLOC;
+			return NULL; 
+		}
 
-	mlock(lock, fish, safeSize);
-	if (mprotect(GET_PAGE(fish_), safeSize, PROT_READ | PROT_EXEC | PROT_WRITE) == -1) 
+		ptrdiff_t orig_rel = fish_ - ADDR(coolbox) - JMP_SIZE;	
+		
+		(void)mempcpy(mempcpy(mempcpy(coolbox, 
+				fish, safeSize),
+				&op,	   1),
+				&orig_rel, JMP_SIZE-1);
+	}else if (byte == CALL)
+		memcpy(&coolbox, (uint8_t*)fish + 1, JMP_SIZE -1);
+	
+	if (mprotect(GET_PAGE(fish_), safeSize, PROT_READ | PROT_EXEC | PROT_WRITE) == -1)
 	{
 		hook_errno = HOOK_EFISH_PROTOFF;
 		return NULL;
@@ -128,6 +133,7 @@ int hook_detach(uintptr_t fish_, hook_t coolbox)
 	uint8_t *instruction = fish;
 	if (*instruction != JMP && *instruction != CALL)
 		return -1;
+    
 	instruction+= JMP_SIZE;
 
 	int safeSize = JMP_SIZE;

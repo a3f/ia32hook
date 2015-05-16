@@ -61,20 +61,19 @@ void * mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset)
 }
 int mprotect(void *addr, size_t len, int prot)
 {
-	DWORD dummy,
-    flProtect = translate_perms(prot);
-    if(flProtect == 0x0)
-    {
-        errno = EINVAL;
-        return -1;
-    }
-
-    if(!VirtualProtect(addr, len, flProtect, &dummy))
-    {
-        errno = translate_errors(GetLastError());
-        return -1;
-    }
-    return 0;
+	DWORD flProtect = translate_perms(prot);
+	if(flProtect == 0x0)	
+	{
+		errno = EINVAL;
+		return -1;
+	}
+	DWORD flOldProtect; // WINE allows for lpflOldProtect == NULL. MSDN clearly states it's not allowed.
+	if(!VirtualProtect(addr, len, flProtect, &flOldProtect))
+	{
+		errno = translate_errors(GetLastError());
+		return -1;
+	}
+	return 0;
 }
 int munmap(void *addr, size_t length)
 {
