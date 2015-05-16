@@ -59,32 +59,37 @@ static union {
 }conv;
 
 static int hook_errno = HOOK_EUNKNOWN;
-hook_t hook_attach(uintptr_t fish_, hook_t hook)
+hook_t hook_attachEx(uintptr_t fish_, hook_t hook, uint8_t byte)
 {
 	void *fish = PTR(fish_);
+	uint8_t* coolbox;
 	unsigned long safeSize = CleanBiteOff(fish, JMP_SIZE);
 	uint8_t *overwrite = malloc(safeSize);
 
-	overwrite[0] = 0xE9;//call e8 -- jmp e9
+	overwrite[0] = byte;//call e8 -- jmp e9
 	for (size_t i = JMP_SIZE; i < safeSize; i++)
 		overwrite[i] = 0x90;
-
-	uint8_t* coolbox = mmap(NULL, safeSize + JMP_SIZE, PROT_EXEC | PROT_WRITE | PROT_READ, MAP_ANON | MAP_PRIVATE, -1, 0); 
-	if (coolbox  == MAP_FAILED)
-	{
-		hook_errno = HOOK_ECOOLBOX_ALLOC;
-		return NULL; 
-	}
-
+	
 	ptrdiff_t hook_rel = ADDR(DATA(hook)) - fish_ - JMP_SIZE;
-	ptrdiff_t orig_rel = fish_ - ADDR(coolbox) - JMP_SIZE;	
 	(void)memcpy(&overwrite[1], &hook_rel, JMP_SIZE-1);
+	if (byte == HOOK_JMP)
+	{
+		coolbox = mmap(NULL, safeSize + JMP_SIZE, PROT_EXEC | PROT_WRITE | PROT_READ, MAP_ANON | MAP_PRIVATE, -1, 0); 
+		if (coolbox  == MAP_FAILED)
+		{
+			hook_errno = HOOK_ECOOLBOX_ALLOC;
+			return NULL; 
+		}
 
-	(void)mempcpy(mempcpy(mempcpy(coolbox, 
-			fish, safeSize),
-			"\xE9",	   1),
-			&orig_rel, JMP_SIZE-1);
-
+		ptrdiff_t orig_rel = fish_ - ADDR(coolbox) - JMP_SIZE;	
+		
+		(void)mempcpy(mempcpy(mempcpy(coolbox, 
+				fish, safeSize),
+				&byte,	   1),
+				&orig_rel, JMP_SIZE-1);
+	}else if (byte == HOOK_CALL)
+		memcpy(&coolbox, (uint8_t*)fish + 1, JMP_SIZE -1);
+	
 	if (mprotect(GET_PAGE(fish_), safeSize, PROT_READ | PROT_EXEC | PROT_WRITE) == -1) 
 	{
 		hook_errno = HOOK_EFISH_PROTOFF;
@@ -106,7 +111,7 @@ int hook_detach(uintptr_t fish_, hook_t coolbox)
 {
 	void *fish = PTR(fish_);
 	uint8_t *instruction = fish;
-	if (*instruction != 0xE9)
+	if (*instruction != HOOK_JMP || *instruction != HOOK_CALL)
 		return -1;
 	instruction+= JMP_SIZE;
 

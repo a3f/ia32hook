@@ -66,8 +66,8 @@ int mprotect(void *addr, size_t len, int prot)
 		errno = EINVAL;
 		return -1;
 	}
-
-	if(!VirtualProtect(addr, len, flProtect, NULL))
+	DWORD flOldProtect; // WINE allows for lpflOldProtect == NULL. MSDN clearly states it's not allowed.
+	if(!VirtualProtect(addr, len, flProtect, &flOldProtect))
 	{
 		errno = translate_errors(GetLastError());
 		return -1;
