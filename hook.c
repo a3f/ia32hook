@@ -80,7 +80,7 @@ hook_t hook_attach(uintptr_t fish_, hook_t hook, int flags)
 		hook_errno = EINVAL;
 		return NULL;
 	}
-	if (*(uint8_t*)fish_ == JMP || *(uint8_t*)fish_ == CALL)
+	if (HOOK_FUNC & flags && (*(uint8_t*)fish_ == JMP || *(uint8_t*)fish_ == CALL))
 	{
 		hook_errno = ENOSYS; // prolly not the intended use
 		// but ought to be enough, until the new engine
