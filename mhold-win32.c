@@ -36,18 +36,19 @@ static int foreach_thread(int (*cb)(THREADENTRY32 *, size_t, void*), void* arg)
         te.dwSize = sizeof(te);
         if (Thread32First(h, &te)) {
             do {
-				if (te.th32OwnerProcessID == GetCurrentProcessId()) {
-					if (cb) {
-						switch(cb(&te, count, arg))
-						{/* srsly, what a beautiful fall-through */
-						case 00: cb = NULL; 
-						case +1: count++;
-						case -1: break;
-						}
-					} else
-                    count++;
-				}
-				te.dwSize = sizeof(te);
+			if (te.th32OwnerProcessID == GetCurrentProcessId()) 
+			{
+				if (cb) 
+				{
+					switch(cb(&te, count, arg))
+					{/* srsly, what a beautiful fall-through */
+					case 00: cb = NULL; 
+					case +1: count++;
+					case -1: break;
+					}
+				} else count++;
+			}
+			te.dwSize = sizeof(te);
             } while (Thread32Next(h, &te));
         }
         CloseHandle(h);
@@ -131,14 +132,13 @@ int mshare(lock_t *lock)
     HANDLE *h;
     if (g_threads)
     {
-		int i = 0;
-        for (h = g_threads; *h != MAP_FAILED; ++h)
+	for (h = g_threads; *h != MAP_FAILED; ++h)
         {
             if (!h)
                 continue;
             ResumeThread(*h);
             CloseHandle(*h);
-		}
+	}
         free(g_threads);
         g_threads = NULL;
     }
