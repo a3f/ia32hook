@@ -76,7 +76,7 @@ Patching the call itself instead of the function is possible by specifying `HOOK
 	}
 	
 ## Known bugs
-Hooking a function shorter than 5 bytes leads to undefined behavior. Hooking a function which uses relative addressing in the instructions containing the first 5 bytes is undefined behaviour. Because most (all?) compilers maintain a frame pointe pointer by default, the patched bytes will be the prologue `push ebp;mov ebp, esp;` and a stack push/sub, these shouldn't be too common occurrences 
+Hooking a function shorter than 5 bytes leads to undefined behavior. Hooking a function which uses relative addressing in the instructions containing the first 5 bytes is undefined behaviour. Because most (all?) compilers maintain a frame pointe pointer by default, the patched bytes will be the prologue `push ebp;mov ebp, esp;` and a stack push/sub; so these bugs shouldn't be too common occurrences .
 
 Eventually, the ollydbg disassembler will be replaced by a non copy-left engine and these points will be addressed.
 
@@ -85,10 +85,10 @@ Keep in mind that the majority of human code produce isn't thread-safe. Calling 
 * The thread that usually calls it calls it, which is usually(?) a dispatcher blocking on `select`/`PeekMessage`.
 * All threads are suspended, memory is backed up, call done, memory restored. The `mhold`/`mshare` function pair available in `mhold-*.c` can help with that.
 
-It will work most of the time though, but only until it eventually crashes;
+It will work most of the time though, but only until it eventually crashes.
 
 ## License
-The disassembler is	written by [Oleh Yuschuk][] and distributed under the terms of the [GNU GPL 2.0][]. The rest of the code is under the [MIT/X11 license][]. Effectively this means though that the thing as a whole is GPL'd.
+The disassembler is written by [Oleh Yuschuk][] and distributed under the terms of the [GNU GPL 2.0][]. The rest of the code is under the [MIT/X11 license][]. Effectively this means though that the thing as a whole is GPL'd.
 
 [lade]: https://github.com/a3f/lade
 [hooking]: https://en.wikipedia.org/wiki/Hooking
