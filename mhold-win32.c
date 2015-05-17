@@ -30,22 +30,24 @@ lock_t* mhold_init()
 static int foreach_thread(int (*cb)(THREADENTRY32 *, size_t, void*), void* arg)
 {
     int count = 0;
-    HANDLE h = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, GetCurrentProcessId());
+    HANDLE h = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
     if (h != INVALID_HANDLE_VALUE) {
         THREADENTRY32 te;
         te.dwSize = sizeof(te);
         if (Thread32First(h, &te)) {
             do {
-                if (cb) {
-                    switch(cb(&te, count, arg))
-                    {/* srsly, what a beautiful fall-through */
-                    case 00: cb = NULL; 
-                    case +1: count++;
-                    case -1: break;
-                    }
-                } else
+				if (te.th32OwnerProcessID == GetCurrentProcessId()) {
+					if (cb) {
+						switch(cb(&te, count, arg))
+						{/* srsly, what a beautiful fall-through */
+						case 00: cb = NULL; 
+						case +1: count++;
+						case -1: break;
+						}
+					} else
                     count++;
-                te.dwSize = sizeof(te);
+				}
+				te.dwSize = sizeof(te);
             } while (Thread32Next(h, &te));
         }
         CloseHandle(h);
@@ -98,9 +100,8 @@ static inline int suspend(THREADENTRY32 *te, size_t index, void* arg_)
         }
         else break;
     }
-
-    g_threads[index] = th;
-
+    
+	g_threads[index] = th;
     return 1;
 }
 int mhold(lock_t *lock, void* start_addr, size_t bytes)
@@ -130,16 +131,18 @@ int mshare(lock_t *lock)
     HANDLE *h;
     if (g_threads)
     {
+		int i = 0;
         for (h = g_threads; *h != MAP_FAILED; ++h)
         {
             if (!h)
                 continue;
-            ResumeThread(h);
-            CloseHandle(h);
-        }
+            ResumeThread(*h);
+            CloseHandle(*h);
+		}
         free(g_threads);
         g_threads = NULL;
     }
+	
     if (lock)
         LeaveCriticalSection(&lock->section);
     return 0;
