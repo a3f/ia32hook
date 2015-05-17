@@ -25,6 +25,7 @@ extern "C" {
 typedef int (*hook_t)();
     
 void hook_init(void);
+void hook_free(void);
 hook_t hook_attach(uintptr_t fish, hook_t hook, int flags);
 int hook_detach(uintptr_t fish, hook_t, int flags);
 int hook_error(char *buf, size_t buflen);

@@ -66,38 +66,44 @@ void hook_init(void)
 {
 	lock = mhold_init();
 }
+void hook_free(void)
+{
+	mhold_remove(lock);
+}
 #define JMP 0xe9
 #define CALL 0xe8
-hook_t hook_attach_s(uintptr_t fish_, hook_t hook, int flags)
-{
-	return hook_attach(fish_, hook, flags | HOOK_UBERSAFE);
-}
 hook_t hook_attach(uintptr_t fish_, hook_t hook, int flags)
 {
+	void *fish = PTR(fish_);
 	unsigned char op = JMP;
 	if (flags & HOOK_CALL && HOOK_FUNC & flags) 
 	{
 		hook_errno = EINVAL;
 		return NULL;
 	}
-	if (HOOK_FUNC & flags && (*(uint8_t*)fish_ == JMP || *(uint8_t*)fish_ == CALL))
-	{
-		hook_errno = ENOSYS; // prolly not the intended use
-		// but ought to be enough, until the new engine
-		return NULL;
+	if (flags & HOOK_FUNC)
+	{	
+		if(*(uint8_t*)fish_ == JMP || *(uint8_t*)fish_ == CALL)
+		{
+			hook_errno = ENOSYS; // prolly not the intended use
+			// but ought to be enough, until the new engine
+			return NULL;
+		}
+		op = JMP;
 	}
-	if (flags & HOOK_CALL) op = CALL;
-	if (flags & HOOK_FUNC) op = JMP;
+	if (flags & HOOK_CALL)
+	{
+		if (*(uint8_t*)fish != CALL)
+		{
+			hook_errno = EILSEQ; // :-)
+			return NULL;
+		}
+		op = CALL;
+	}
 
 
-	void *fish = PTR(fish_);
 	uint8_t* coolbox;
 	unsigned long safeSize = CleanBiteOff(fish, JMP_SIZE);
-	if (flags & HOOK_CALL && *(uint8_t*)fish != CALL)
-	{
-		hook_errno = EILSEQ; // :-)
-		return NULL;
-	}
 	uint8_t *overwrite = malloc(safeSize);
 
 	overwrite[0] = op;
