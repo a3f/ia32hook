@@ -1,9 +1,11 @@
 ## ia32hook
 ia32hook is a tiny library for [hooking][] procedures in the same address space. The hooked function's calling convention needs to be the same as the hook. So for hooking `WINAPI` functions one would need to specify `__stdcall`.
 
-ia32hook is written in the C99 subset of C++11 and is compilable as either. It supports hooking of IA32 (x86 32 bit, i386) code only. It has been tested on Windows 8, OS X Yosemite and Debian 7 but should work on any other Windows/UNIX system too. If your hook isn't within the address space of the function you want to hook, <s>[lade][]</s> A [DLL injector][] can inject your code into the foreign process.<!--note to self: lade's link here when uploaded--> 
+ia32hook is written in the C99 subset of C++11 and is compilable as either. It supports hooking of IA32 (x86 32 bit, i386) code only. It has been tested on Windows 8, OS X Yosemite and Debian 7 but should work on any other Windows/UNIX system too. If your hook isn't within the address space of the function you want to hook, <s>[lade][]</s> A [DLL injector][] can inject your code into the foreign process.
 
-The hooking is done by patching the first few instructions with a `jmp` to the hook. the overwritten bytes are copied to an executable buffer and their address is returned by `hook_attach`. `hook_detach` reinstates the bytes and frees the buffer. Suspension of the process does **not** occur. The initial commit code-caved an additional argument push to stack with a pointer to the buffer, but the current static-duration-pointer-way seems neater.
+The hooking is done  by default through patching the first few instructions with a `jmp` to the hook. the overwritten bytes are copied to an executable buffer and their address is returned by `hook_attach`. `hook_detach` reinstates the bytes and frees the buffer. The initial commit code-caved an additional argument push to stack with a pointer to the buffer, but the current static-duration-pointer-way seems neater.
+
+Patching the call itself instead of the function is possible by specifying `HOOK_CALL` in `flags`. On Win32, suspension of other threads is attempted prior to the hooking, unless `HOOK_HOTPLUG` is specified.
 
 ## Example I
 	 // redirect the sqrt_ funtion to sqrt_hook and conditionally call the original
@@ -18,10 +20,11 @@ The hooking is done by patching the first few instructions with a `jmp` to the h
 	
 	 int main(void)
 	 {
+		 hook_init();
 	     printf("UnHooked:_sqrt(9) = %g, _sqrt(-9) = %g,\n         sqrt_hook(9) = %g, sqrt_hook(-9) = %g\n\n", 
 						  _sqrt(9),		 _sqrt(-9),		  		   sqrt_hook(9),	  sqrt_hook(-9 );
 	
-	     sqrt_orig = hook_attach((uintptr_t)_sqrt, sqrt_hook);
+	     sqrt_orig = hook_attach((uintptr_t)_sqrt, sqrt_hook, 0);
 	     printf("  Hooked:_sqrt(9) = %g, _sqrt(-9) = %g,\n         sqrt_hook(9) = %g, sqrt_hook(-9) = %g\n\n", 
 						  _sqrt(9),		 _sqrt(-9),		  		   sqrt_hook(9),	  sqrt_hook(-9 );
 	
@@ -61,17 +64,28 @@ The hooking is done by patching the first few instructions with a `jmp` to the h
 	{
 		(void) static_or_terminate;
 		(void) hModule;
-
+		
 		if(dwReason == DLL_PROCESS_ATTACH)
-			player_talkchannel = hook_attach(PlayerTalkChannelAddr, PlayerTalkChannelHook);
+		{
+			hook_init();
+			player_talkchannel = hook_attach(PlayerTalkChannelAddr, PlayerTalkChannelHook, 0);
+		}else if (dwReason == DLL_PROCESS_DETACH)
+			hook_detach(PlayerTalkChannelAddr, player_talkchannel);
 
 		return TRUE;
 	}
 	
 ## Known bugs
-Rehooking an already hooked function currently leads to undefined behavior. Hooking a function shorter than 5 bytes leads to undefined behavior. Hooking a function which uses relative addressing in the instructions containing the first 5 bytes is undefined behaviour. Because most (all?) compilers maintain a frame pointe pointer by default, the patched bytes will be the prologue `push ebp;mov ebp, esp;` and a stack push/sub. So the last one shouldn't be too common. 
+Hooking a function shorter than 5 bytes leads to undefined behavior. Hooking a function which uses relative addressing in the instructions containing the first 5 bytes is undefined behaviour. Because most (all?) compilers maintain a frame pointe pointer by default, the patched bytes will be the prologue `push ebp;mov ebp, esp;` and a stack push/sub, these shouldn't be too common occurrences 
 
-Eventually, the ollydbg disassembler will be replaced by a non copy-left engine and these points will be adressed.
+Eventually, the ollydbg disassembler will be replaced by a non copy-left engine and these points will be addressed.
+
+## Notes
+Keep in mind that the majority of human code produce isn't thread-safe. Calling thread-unsafe foreign code will only be perfectly safe when either:
+* The thread that usually calls it calls it, which is usually(?) a dispatcher blocking on `select`/`PeekMessage`.
+* All threads are suspended, memory is backed up, call done, memory restored. The `mhold`/`mshare` function pair available in `mhold-*.c` can help with that.
+
+It will work most of the time though, but only until it eventually crashes;
 
 ## License
 The disassembler is	written by [Oleh Yuschuk][] and distributed under the terms of the [GNU GPL 2.0][]. The rest of the code is under the [MIT/X11 license][]. Effectively this means though that the thing as a whole is GPL'd.

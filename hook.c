@@ -15,13 +15,12 @@
  */
 
 #include <stdlib.h>
-#include <stdio.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-#include <stddef.h>
 #include <errno.h>
 #include "hook.h"
+#include "mhold.h"
 #include "ollydisasm/disasm.h"
 
 #undef GET_PAGE
@@ -65,16 +64,26 @@ static int hook_errno = HOOK_EUNKNOWN;
 static lock_t *lock;
 void hook_init(void)
 {
-	lock = mlock_init();
+	lock = mhold_init();
 }
 #define JMP 0xe9
 #define CALL 0xe8
+hook_t hook_attach_s(uintptr_t fish_, hook_t hook, int flags)
+{
+	return hook_attach(fish_, hook, flags | HOOK_UBERSAFE);
+}
 hook_t hook_attach(uintptr_t fish_, hook_t hook, int flags)
 {
 	unsigned char op = JMP;
 	if (flags & HOOK_CALL && HOOK_FUNC & flags) 
 	{
 		hook_errno = EINVAL;
+		return NULL;
+	}
+	if (*(uint8_t*)fish_ == JMP || *(uint8_t*)fish_ == CALL)
+	{
+		hook_errno = ENOSYS; // prolly not the intended use
+		// but ought to be enough, until the new engine
 		return NULL;
 	}
 	if (flags & HOOK_CALL) op = CALL;
@@ -84,6 +93,11 @@ hook_t hook_attach(uintptr_t fish_, hook_t hook, int flags)
 	void *fish = PTR(fish_);
 	uint8_t* coolbox;
 	unsigned long safeSize = CleanBiteOff(fish, JMP_SIZE);
+	if (flags & HOOK_CALL && *(uint8_t*)fish != CALL)
+	{
+		hook_errno = EILSEQ; // :-)
+		return NULL;
+	}
 	uint8_t *overwrite = malloc(safeSize);
 
 	overwrite[0] = op;
@@ -108,9 +122,14 @@ hook_t hook_attach(uintptr_t fish_, hook_t hook, int flags)
 				fish, safeSize),
 				&op,	   1),
 				&orig_rel, JMP_SIZE-1);
-	}else if (byte == CALL)
+	}else if (op == CALL)
 		memcpy(&coolbox, (uint8_t*)fish + 1, JMP_SIZE -1);
 	
+	if(!(flags & HOOK_HOTPLUG) && !mhold(lock, fish, safeSize) && flags & HOOK_UBERSAFE)
+	{
+		hook_errno = HOOK_EUBER_SAFE;
+		return NULL;
+	}
 	if (mprotect(GET_PAGE(fish_), safeSize, PROT_READ | PROT_EXEC | PROT_WRITE) == -1)
 	{
 		hook_errno = HOOK_EFISH_PROTOFF;
@@ -124,36 +143,48 @@ hook_t hook_attach(uintptr_t fish_, hook_t hook, int flags)
 		hook_errno = HOOK_EFISH_PROTON;
 		return NULL;
 	}
-	munlock(lock);
+	mshare(lock);
 	return (conv.ptr=coolbox, conv.fun);
 }
-int hook_detach(uintptr_t fish_, hook_t coolbox)
+int hook_detach(uintptr_t fish_, hook_t coolbox, int flags)
 {
 	void *fish = PTR(fish_);
-	uint8_t *instruction = fish;
-	if (*instruction != JMP && *instruction != CALL)
-		return -1;
-    
-	instruction+= JMP_SIZE;
-
+	uint8_t *pbyte = fish;
+	uint8_t op = *pbyte;
 	int safeSize = JMP_SIZE;
-	while (*(instruction++) == 0x90) safeSize++; // count nops
+	void *dest;
+	void *src;
+	if (op == JMP) {
+		for (pbyte += safeSize; *pbyte == 0x90; pbyte++)
+			safeSize++; // count nops
+		dest = PTR(fish_);
+		src = DATA(coolbox);
+	}else if (op == CALL) {
+		safeSize--; // we won't overwrite the CALL
+		dest = PTR(fish_+1);
+		src = &coolbox;
+	}else return -1;
+	if(!(flags & HOOK_HOTPLUG) && !mhold(lock, fish, safeSize) && flags & HOOK_UBERSAFE)
+	{
+		hook_errno = HOOK_EUBER_SAFE;
+		return -1;
+	}
 
-	if (mprotect(GET_PAGE(fish_), safeSize, PROT_READ | PROT_WRITE | PROT_EXEC) == -1) 
+	if (mprotect(GET_PAGE(dest), safeSize, PROT_READ | PROT_WRITE | PROT_EXEC) == -1) 
 	{
 		hook_errno = HOOK_EFISH_PROTOFF;
 		return -1;
 	}
-	mlock(lock, fish, safeSize);
-	(void)memcpy(fish, DATA(coolbox), safeSize);
+	(void)memcpy(dest, src, safeSize);
 
-	if (mprotect(GET_PAGE(fish_), safeSize, PROT_READ | PROT_EXEC) == -1) 
+	if (mprotect(GET_PAGE(dest), safeSize, PROT_READ | PROT_EXEC) == -1) 
 	{
-		hook_errno = HOOK_EFISH_PROTOFF;
+		hook_errno = HOOK_EFISH_PROTON;
 		return -1;
 	}
-	munlock(lock);
-	if (munmap(DATA(coolbox), safeSize + JMP_SIZE) != 0)
+
+	mshare(lock);
+	if (op == JMP && munmap(DATA(coolbox), safeSize + JMP_SIZE) != 0)
 	{
 		hook_errno = HOOK_ECOOLBOX_DEALLOC;
 		return -1;

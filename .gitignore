@@ -11,4 +11,6 @@ build/
 *.dll
 *.lib
 *.out
+win32
+test
 

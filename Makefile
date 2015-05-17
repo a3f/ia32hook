@@ -1,16 +1,17 @@
 BIN_NAME = ia32hook.a
 
-#CC = gcc
-CC = /usr/local/mingw/bin/i686-w64-mingw32-gcc
-
 override FLAGS += -g -m32 -std=c99 -Wall -Wextra 
 
 SRCDIR = .
 OBJDIR = build
 
-SRCS = hook.c win32.c
-SRCS += test/isOdd.c
-
+SRCS := hook.c tests/isOdd.c
+#TEST += tests/isOdd.c
+#TODO: `make win32 test` should work
+#TODO: -lpthread on Linux
+SRCS += $(TEST)
+SRCS += #mhold-win32.c win32.c 
+SRCS += mhold-unix.c
 INC += -Iinclude/ -Ilib/
  
 OBJS = $(SRCS:%.c=$(OBJDIR)/%.o) 
@@ -21,6 +22,16 @@ DISASM_OBJS = $(DISASM_SRCS:%.c=$(OBJDIR)/%.o)
 .DEFAULT: (BIN_NAME)
 $(BIN_NAME): $(OBJS) $(DISASM_OBJS)
 	$(AR) rcs $(BIN_NAME) $(OBJS) $(DISASM_OBJS)
+
+win32: CC = /usr/local/mingw/bin/i686-w64-mingw32-gcc
+win32: AR = /usr/local/mingw/bin/i686-w64-mingw32-ar
+win32: $(BIN_NAME)
+
+test: SRCS += $(TEST)
+
+
+test: $(OBJS) $(DISASM_OBJS)
+	$(CC) $(FLAGS) $(OBJS) $(DISASM_OBJS) -o $@ $(LIBS)
 
 $(OBJS): $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) -MMD $(FLAGS) -c $< -o $@ $(INC) 
@@ -37,5 +48,5 @@ endif
 
 .PHONY: clean
 clean:
-	$(RM) $(BIN_NAME) && cd $(OBJDIR) && $(RM) *.o *.d && cd $(DISASM_SRCDIR) && $(RM) *.o *.d && cd ../test && $(RM) *.o *.d
+	$(RM) $(BIN_NAME) test && cd $(OBJDIR) && $(RM) *.o *.d && cd $(DISASM_SRCDIR) && $(RM) *.o *.d && cd ../tests && $(RM) *.o *.d
 

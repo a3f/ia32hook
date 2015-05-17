@@ -11,9 +11,10 @@ int _isOdd2(int x) { return isEven(x); }
 int main(int argc, char *argv[])
 {
 	int num;
-   	num	= atoi(argv[1]);
 	assert(argc == 2);
+   	num	= atoi(argv[1]);
 	hook_init();
+	printf("HOOK_JMP:");
 	printf("UnHooked:\n\tisEven(%d)=%s, isOdd(%d)=%s\n", 
 			num, isEven(num) ? "TRUE" : "FALSE",
 			num, isOdd(num)  ? "TRUE" : "FALSE");
@@ -24,9 +25,21 @@ int main(int argc, char *argv[])
 			num, isEven(num) ? "TRUE" : "FALSE",
 			num, isOdd(num)  ? "TRUE" : "FALSE");
 
-	hook_detach((uintptr_t)isOdd, orig_isOdd);
+	hook_detach((uintptr_t)isOdd, orig_isOdd, 0);
 	printf("DeHooked:\n\tisEven(%d)=%s, isOdd(%d)=%s\n", 
 			num, isEven(num) ? "TRUE" : "FALSE",
 			num, isOdd(num)  ? "TRUE" : "FALSE");
+
 }
+// TODO complete this HOOK_CALL example
+#if 0
+//#ifdef __GNUC__
+#include <limits.h>
+int _isOdd_with_a_twist(int x)
+{
+   	// ub ub ub
+	if (x == INT_MIN) return (int)__builtin_return_address(0);
+	return x < 10 ? orig_isOdd(x) : isEven(x);
+}
+#endif
 
