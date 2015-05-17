@@ -76,7 +76,7 @@ Patching the call itself instead of the function is possible by specifying `HOOK
 	}
 	
 ## Known bugs
-Hooking a function shorter than 5 bytes leads to undefined behavior. Hooking a function which uses relative addressing in the instructions containing the first 5 bytes is undefined behaviour. Because most (all?) compilers maintain a frame pointe pointer by default, the patched bytes will be the prologue `push ebp;mov ebp, esp;` and a stack push/sub; so these bugs shouldn't be too common occurrences .
+Hooking a function shorter than 5 bytes leads to undefined behavior. Hooking a function which uses relative addressing in the instructions containing the first 5 bytes is undefined behaviour. Because most (all?) compilers maintain a frame pointer by default, the patched bytes will be the prologue `push ebp;mov ebp, esp;` and a stack push/sub; so these bugs shouldn't be too common occurrences .
 
 Eventually, the ollydbg disassembler will be replaced by a non copy-left engine and these points will be addressed.
 
