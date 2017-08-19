@@ -18,6 +18,7 @@ extern "C" {
 #endif
 
 #include <stddef.h>
+#include <stdint.h>
 
 #if !defined(__i386__) || ((defined(_WIN32) && !defined(_M_IX86)))
 #error Only IA32 (x86 - 32 bits) is supported

@@ -27,26 +27,18 @@
 #ifdef _WIN32
 #include "win32.h"
 #include <windows.h>
-#define GET_PAGE TOPTR //VirtualAlloc seems to do this internally
+#define GET_PAGE (void*) //VirtualAlloc seems to do this internally
 #else
+#include <sys/mman.h>
 #ifndef MAP_ANON
 #define MAP_ANON MAP_ANONYMOUS
 #endif
-#include <sys/mman.h>
 #include <unistd.h>
 #define GET_PAGE(addr) ((void*)((uintptr_t)(addr) & ~(getpagesize() - 1)))
 #endif
 
 #undef mempcpy
 #define mempcpy(dst, src, len) ((char*)memcpy((dst), (src), (len)) + (len))
-
-#undef TOPTR
-#undef TOUINT
-#undef TOPVOID
-
-#define TOPTR(addr_) ((void*)addr_)
-#define TOUINT(ptr_) (uintptr_t)ptr_)
-#define TOPVOID(fun_) ((void*)fun_)
 
 #undef JMP_SIZE
 #define JMP_SIZE 5
@@ -67,7 +59,7 @@ void hook_free(void)
 #define CALL 0xe8
 hook_t hook_attach(uintptr_t fish_, hook_t hook, int flags)
 {
-	void *fish = TOPTR(fish_);
+	void *fish = (void*)fish_;
 	unsigned char op = JMP;
 	if (flags & HOOK_CALL && HOOK_FUNC & flags) 
 	{
@@ -103,7 +95,7 @@ hook_t hook_attach(uintptr_t fish_, hook_t hook, int flags)
 	for (size_t i = JMP_SIZE; i < safeSize; i++)
 		overwrite[i] = 0x90;
 	
-	ptrdiff_t hook_rel = TOUINT(TOPVOID(hook)) - fish_ - JMP_SIZE;
+	ptrdiff_t hook_rel = (uintptr_t)(void*)hook - fish_ - JMP_SIZE;
 	(void)memcpy(&overwrite[1], &hook_rel, JMP_SIZE-1);
 
     if (op == JMP)
@@ -115,7 +107,7 @@ hook_t hook_attach(uintptr_t fish_, hook_t hook, int flags)
 			return NULL; 
 		}
 
-		ptrdiff_t orig_rel = fish_ - TOUINT(coolbox) - JMP_SIZE;	
+		ptrdiff_t orig_rel = fish_ - (uintptr_t)coolbox - JMP_SIZE;	
 		
 		(void)mempcpy(mempcpy(mempcpy(coolbox, 
 				fish, safeSize),
@@ -143,11 +135,11 @@ hook_t hook_attach(uintptr_t fish_, hook_t hook, int flags)
 		return NULL;
 	}
 	mshare(lock);
-	return (conv.ptr=coolbox, conv.fun);
+	return (hook_t)coolbox;
 }
 int hook_detach(uintptr_t fish_, hook_t coolbox, int flags)
 {
-	void *fish = TOPTR(fish_);
+	void *fish = (void*)fish_;
 	uint8_t *pbyte = fish;
 	uint8_t op = *pbyte;
 	int safeSize = JMP_SIZE;
@@ -156,11 +148,11 @@ int hook_detach(uintptr_t fish_, hook_t coolbox, int flags)
 	if (op == JMP) {
 		for (pbyte += safeSize; *pbyte == 0x90; pbyte++)
 			safeSize++; // count nops
-		dest = TOPTR(fish_);
-		src = TOPVOID(coolbox);
+		dest = (void*)fish_;
+		src = (void*)coolbox;
 	}else if (op == CALL) {
 		safeSize--; // we won't overwrite the CALL
-		dest = TOPTR(fish_+1);
+		dest = (void*)(fish_+1);
 		src = &coolbox;
 	}else return -1;
 	if(!(flags & HOOK_HOTPLUG) && !mhold(lock, fish, safeSize) && flags & HOOK_UBERSAFE)
@@ -183,7 +175,7 @@ int hook_detach(uintptr_t fish_, hook_t coolbox, int flags)
 	}
 
 	mshare(lock);
-	if (op == JMP && munmap(TOPVOID(coolbox), safeSize + JMP_SIZE) != 0)
+	if (op == JMP && munmap((void*)coolbox, safeSize + JMP_SIZE) != 0)
 	{
 		hook_errno = HOOK_ECOOLBOX_DEALLOC;
 		return -1;

@@ -12,5 +12,5 @@ build/
 *.lib
 *.out
 win32
-test
+run-test
 

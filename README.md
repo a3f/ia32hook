@@ -1,4 +1,5 @@
-## ia32hook
+## ia32hook [![Build Status](https://travis-ci.org/a3f/ia32hook.svg?branch=master)](https://travis-ci.org/a3f/ia32hook) [![Build status](https://ci.appveyor.com/api/projects/status/nee950dy8ub5a0sw/branch/master?svg=true)](https://ci.appveyor.com/project/a3f/ia32hook/branch/master)
+
 ia32hook is a tiny library for [hooking][] procedures in the same address space. The hooked function's calling convention needs to be the same as the hook. So for hooking `WINAPI` functions one would need to specify `__stdcall`.
 
 ia32hook is written in the C99 subset of C++11 and is compilable as either. It supports hooking of IA32 (x86 32 bit, i386) code only. It has been tested on Windows 8, OS X Yosemite and Debian 7 but should work on any other Windows/UNIX system too. If your hook isn't within the address space of the function you want to hook, <s>[lade][]</s> A [DLL injector][] can inject your code into the foreign process.

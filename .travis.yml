@@ -1,0 +1,29 @@
+language: c
+sudo: required
+dist: trusty
+
+os:
+  - osx
+  - linux
+
+compiler:
+  - clang
+  - gcc
+
+env:
+  global:
+    - VERBOSE=1
+  matrix:
+    #- CFLAGS=-m64 LDFLAGS=-m64
+    - CFLAGS=-m32 LDFLAGS=-m32
+
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install gcc-multilib ;  fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" && "$CC" == "gcc" ]]; then brew install gcc@7; export CC=gcc-7 ; fi
+  - $CC --version
+
+before_script:
+
+script:
+  - make
+  - make test
